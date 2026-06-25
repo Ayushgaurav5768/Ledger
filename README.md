@@ -106,6 +106,10 @@ Client → Nginx → Gateway → Auth Middleware → Rate Limiter → Meter Midd
 - React + Vite dashboard with real-time billing updates
 - Polls `/billing/:apiKey` every 5 seconds
 - API key registration form with copyable key and sample curl command
+- Modern dark-themed UI with gradient accents, glassmorphism cards, and animated backgrounds
+- Stats cards for tier, usage progress bar, and amount due
+- Rate limit testing widget with visual status feedback
+- Copy-to-clipboard with visual confirmation
 - Developed with Vite hot-reload; production build served via nginx
 
 ---
@@ -118,7 +122,8 @@ Client → Nginx → Gateway → Auth Middleware → Rate Limiter → Meter Midd
 | **Rate Limiter** | Redis Lua scripting (atomic token bucket) |
 | **Database** | MongoDB 7 (usage logs, API keys) |
 | **Cache** | Redis 7 (rate limit state, usage counters) |
-| **Dashboard** | React 18, Vite 6, Axios |
+| **Dashboard** | React 18, Vite 6, Axios, CSS gradients + glassmorphism |
+| **Billing Service** | Node.js, Express, MongoDB, Redis (async invoice generation) |
 | **Load Balancer** | Nginx (round-robin) |
 | **Containerization** | Docker, Docker Compose |
 | **CI/CD** | GitHub Actions, GitHub Container Registry |
@@ -151,6 +156,18 @@ open http://localhost:5173
 # 5. Check your billing
 curl http://localhost:8080/billing/<your-key>
 # → {"apiKey":"...","tier":"free","usageCount":1,"amountDue":0}
+```
+
+### Public Access (via tunnel)
+
+```bash
+# Expose the gateway to a public URL
+ssh -R 80:localhost:8080 nokey@localhost.run
+# → https://some-id.lhr.life (API + billing endpoints)
+
+# Expose the dashboard
+ssh -R 80:localhost:5173 nokey@localhost.run
+# → https://some-other-id.lhr.life (React UI)
 ```
 
 ### Register with a paid tier
@@ -243,6 +260,7 @@ Health check endpoint.
 | **Nginx** | 80 | `8080` | Load balancer + reverse proxy |
 | **Gateway-1** | 5000 | — | Express API gateway (instance 1) |
 | **Gateway-2** | 5000 | — | Express API gateway (instance 2) |
+| **Billing Service** | 5002 | — | Async billing (invoices, reconciliation) |
 | **Fake Backend** | 5001 | `5001` | Test backend for development |
 | **MongoDB** | 27017 | `27017` | Primary data store |
 | **Redis** | 6379 | `6379` | Rate limiting + counters |
@@ -358,9 +376,16 @@ Ledger/
 │   │   ├── src/
 │   │   │   ├── components/         # React components
 │   │   │   ├── services/api.js     # API client
+│   │   │   ├── styles.css          # Modern dark theme CSS
 │   │   │   ├── App.jsx             # Main app
 │   │   │   └── main.jsx            # Entry point
 │   │   └── index.html
+│   ├── billing-service/            # Async billing service
+│   │   └── src/
+│   │       ├── jobs/               # Invoice generation
+│   │       ├── pricing/            # Tier config
+│   │       ├── reconciliation/     # Drift detection
+│   │       └── routes/             # Billing APIs
 │   ├── fake-backend/               # Test backend
 │   │   └── src/index.js
 │   └── gateway/                    # API gateway
