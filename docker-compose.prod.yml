@@ -1,0 +1,86 @@
+services:
+
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - ledger
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    networks:
+      - ledger
+
+  fake-backend:
+    build:
+      context: ./services/fake-backend
+    restart: unless-stopped
+    networks:
+      - ledger
+
+  gateway-1:
+    build:
+      context: ./services/gateway
+    restart: unless-stopped
+    depends_on:
+      - mongo
+      - redis
+      - fake-backend
+    environment:
+      PORT: 5000
+      MONGO_URL: mongodb://mongo:27017/ledger
+      REDIS_URL: redis://redis:6379
+      DEFAULT_BACKEND_URL: http://fake-backend:5001
+    networks:
+      - ledger
+
+  gateway-2:
+    build:
+      context: ./services/gateway
+    restart: unless-stopped
+    depends_on:
+      - mongo
+      - redis
+      - fake-backend
+    environment:
+      PORT: 5000
+      MONGO_URL: mongodb://mongo:27017/ledger
+      REDIS_URL: redis://redis:6379
+      DEFAULT_BACKEND_URL: http://fake-backend:5001
+    networks:
+      - ledger
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - gateway-1
+      - gateway-2
+    networks:
+      - ledger
+
+  client:
+    build:
+      context: ./services/client
+      dockerfile: Dockerfile.prod
+    ports:
+      - "5173:80"
+    depends_on:
+      - nginx
+    networks:
+      - ledger
+
+volumes:
+  mongo_data:
+  redis_data:
+
+networks:
+  ledger:
