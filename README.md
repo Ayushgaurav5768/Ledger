@@ -158,16 +158,40 @@ curl http://localhost:8080/billing/<your-key>
 # → {"apiKey":"...","tier":"free","usageCount":1,"amountDue":0}
 ```
 
-### Public Access (via tunnel)
+### Live Demo (Public URLs)
+
+The platform is currently deployed via SSH tunnels:
+
+| Service | URL |
+|---------|-----|
+| **Dashboard UI** | https://91bf658ce0ee7a.lhr.life |
+| **API Gateway** | https://ce1c259a631f7a.lhr.life |
+
+**Quick test:**
+```bash
+# Register an API key
+curl -X POST https://ce1c259a631f7a.lhr.life/register \
+  -H "Content-Type: application/json" \
+  -d '{"backendUrl":"http://fake-backend:5001"}'
+
+# Test the proxy (replace <key> with your key)
+curl https://ce1c259a631f7a.lhr.life/api/test \
+  -H "x-api-key: <key>"
+
+# Check billing
+curl https://ce1c259a631f7a.lhr.life/billing/<key>
+```
+
+> **Note:** These are temporary tunnel URLs. For a permanent deployment, use `docker-compose.prod.yml` on a cloud VM.
+
+### Self-Hosted (via tunnel)
 
 ```bash
 # Expose the gateway to a public URL
 ssh -R 80:localhost:8080 nokey@localhost.run
-# → https://some-id.lhr.life (API + billing endpoints)
 
 # Expose the dashboard
 ssh -R 80:localhost:5173 nokey@localhost.run
-# → https://some-other-id.lhr.life (React UI)
 ```
 
 ### Register with a paid tier
